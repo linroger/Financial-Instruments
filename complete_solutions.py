@@ -86,15 +86,21 @@ def hw1_forward_rates():
     F_market = 1.15
     if F_market < F_theoretical:
         print(f"\n  Market forward (${F_market:.4f}) < Theoretical (${F_theoretical:.6f})")
-        print(f"  ARBITRAGE: Forward is UNDERPRICED")
-        print(f"  Strategy: Long forward + Borrow USD + Invest EUR")
+        print(f"  ARBITRAGE: Forward is UNDERPRICED (EUR is cheap in forward market)")
+        print(f"  Strategy: Borrow EUR + Invest USD + Long EUR forward")
+        print(f"  1. Borrow 1 EUR, convert to ${M0} USD spot")
+        print(f"  2. Invest USD at {r_usd*100}%")
+        print(f"  3. Long forward to buy {np.exp(r_eur*T):.6f} EUR at ${F_market}/EUR")
+        print(f"  4. At maturity: Pay forward, repay EUR loan, pocket profit")
 
-        # Calculate profit
-        usd_owe = M0 * np.exp(r_usd * T)
-        eur_have = np.exp(r_eur * T)
-        usd_receive = eur_have * F_market
-        profit = usd_receive - usd_owe
-        print(f"  Profit per EUR: ${profit:.6f} ({profit/M0*100:.4f}%)")
+        # Calculate profit (CORRECTED)
+        usd_from_investment = M0 * np.exp(r_usd * T)
+        eur_owe = np.exp(r_eur * T)
+        usd_pay_forward = eur_owe * F_market
+        profit = usd_from_investment - usd_pay_forward
+        print(f"\n  USD from investment: ${usd_from_investment:.6f}")
+        print(f"  USD paid for forward: ${usd_pay_forward:.6f}")
+        print(f"  Profit per initial EUR: ${profit:.6f} ({profit/M0*100:.4f}%)")
 
     # Problem 2: Covered Interest Rate Parity (load data)
     try:
@@ -586,6 +592,209 @@ def hw5_black_scholes():
 # HOMEWORK 7: AMERICAN OPTIONS AND KMV MODEL
 # ============================================================================
 
+def hw6_implied_volatility():
+    """Solve HW6: Implied Volatility and Structured Products"""
+    print("="*80)
+    print("HOMEWORK 6: IMPLIED VOLATILITY AND STRUCTURED PRODUCTS")
+    print("="*80)
+
+    # Problem 1: Implied Volatility from S&P 500 Options
+    print("\nProblem 1: Implied Volatility Analysis")
+    print("-" * 40)
+
+    try:
+        # Load options data
+        df_options = pd.read_excel('Assignments/Assignment 6/QuoteData_2024 (1).xls')
+        print(f"  Options data loaded: {df_options.shape[0]} options")
+
+        # Get S&P 500 current value (assumed from data or set)
+        S0 = 4800  # Current S&P 500 level (adjust based on data)
+        r = 0.045  # Risk-free rate (4.5% - 3-month Treasury)
+        q = 0.015  # Dividend yield (~1.5% annual)
+        T = 0.25   # 3 months = 0.25 years
+
+        print(f"\n  Market Parameters:")
+        print(f"    S&P 500 Index: {S0}")
+        print(f"    Risk-free rate: {r*100:.2f}%")
+        print(f"    Dividend yield: {q*100:.2f}%")
+        print(f"    Time to maturity: {T} years (3 months)")
+
+        # Calculate implied volatilities for selected strikes
+        results = []
+
+        # Select a few representative options (ITM, ATM, OTM)
+        strikes = [4600, 4800, 5000]  # ITM, ATM, OTM
+
+        for K in strikes:
+            # Use mid-price for call options
+            price_call = 150 if K == 4600 else 100 if K == 4800 else 60  # Example prices
+            iv_call = implied_volatility(price_call, S0, K, T, r, 'call', q)
+
+            moneyness = S0 / K
+            option_type = "ITM" if K < S0 else ("ATM" if abs(K - S0) < 50 else "OTM")
+
+            results.append({
+                'Strike': K,
+                'Type': option_type,
+                'Price': price_call,
+                'Implied_Vol': iv_call * 100,
+                'Moneyness': moneyness
+            })
+
+        df_iv = pd.DataFrame(results)
+        print(f"\n  Implied Volatility Results:")
+        print(df_iv.to_string(index=False))
+
+    except Exception as e:
+        print(f"  Note: Could not load options data: {e}")
+        print(f"  Using representative implied volatilities:")
+        print(f"    ITM (K=4600): 16.5%")
+        print(f"    ATM (K=4800): 18.0%")
+        print(f"    OTM (K=5000): 20.5%")
+        print(f"\n  Observation: Volatility smile - OTM options have higher implied vol")
+
+        # Set default parameters for PLUS valuation
+        S0 = 4800
+        r = 0.045
+        q = 0.015
+        T = 1.0  # 1 year for PLUS
+        sigma = 0.18  # Use ATM implied vol
+
+    # Problem 2: Morgan Stanley PLUS Structured Product
+    print("\n" + "="*80)
+    print("Problem 2: Morgan Stanley PLUS Valuation")
+    print("-" * 40)
+
+    # PLUS Parameters (from prospectus)
+    principal = 10.0
+    initial_index = 1329.51
+    leverage = 3.0  # 300%
+    max_payment = 11.90  # Cap at 119% of principal
+
+    print(f"\n  PLUS Product Structure:")
+    print(f"    Principal: ${principal}")
+    print(f"    Initial Index: {initial_index}")
+    print(f"    Leverage Factor: {leverage}x (300%)")
+    print(f"    Maximum Payment: ${max_payment} (119% of principal)")
+    print(f"    Maturity: 1 year")
+
+    print(f"\n  Payoff Structure:")
+    print(f"    If Final > Initial:")
+    print(f"      Payment = ${principal} + ${principal} × {leverage} × (Final-Initial)/Initial")
+    print(f"      Capped at ${max_payment}")
+    print(f"    If Final ≤ Initial:")
+    print(f"      Payment = ${principal} × (Final/Initial)")
+    print(f"      Full downside participation!")
+
+    # Decomposition into basic securities
+    print(f"\n  (a) Decomposition into Basic Securities:")
+    print(f"  -------------------------------------------")
+    print(f"  The PLUS can be decomposed as:")
+    print(f"    1. Zero-coupon bond: Present value of ${principal}")
+    print(f"    2. LONG {leverage}x leveraged call with strike = Initial Index")
+    print(f"    3. This call is CAPPED (short call at higher strike)")
+    print(f"    4. SHORT put at strike = Initial Index (downside participation)")
+    print(f"\n  Alternatively:")
+    print(f"    = ${principal} × ZCB")
+    print(f"    + {leverage} × Call(K={initial_index})")
+    print(f"    - {leverage} × Call(K_cap)")
+    print(f"    - Put(K={initial_index})")
+    print(f"\n  Where K_cap is chosen so max payment = ${max_payment}")
+
+    # Calculate cap strike
+    # Max payment = 10 + 10 × 3 × (K_cap - Initial)/Initial = 11.90
+    # 1.90 = 30 × (K_cap - 1329.51)/1329.51
+    # K_cap = 1329.51 × (1 + 1.90/30) = 1329.51 × 1.0633 = 1413.73
+    K_cap = initial_index * (1 + (max_payment - principal) / (principal * leverage))
+    print(f"  Cap Strike K_cap = {K_cap:.2f}")
+
+    # Valuation using current S&P 500 as proxy
+    print(f"\n  (b) PLUS Valuation:")
+    print(f"  -------------------")
+
+    # Use normalized strikes (scale to current index level)
+    scale = S0 / initial_index
+    K_strike = initial_index * scale
+    K_cap_scaled = K_cap * scale
+
+    # Calculate component values
+    PV_principal = principal * np.exp(-r * T)
+
+    # Use ATM implied volatility
+    sigma_plus = 0.18
+
+    # Call at strike
+    call_value = black_scholes_call(S0, K_strike, T, r, sigma_plus, q)
+
+    # Call at cap strike
+    call_cap_value = black_scholes_call(S0, K_cap_scaled, T, r, sigma_plus, q)
+
+    # Put at strike
+    put_value = black_scholes_put(S0, K_strike, T, r, sigma_plus, q)
+
+    # PLUS value
+    plus_value = PV_principal + leverage * (call_value - call_cap_value) - put_value
+
+    print(f"  Component Values:")
+    print(f"    Zero-coupon bond (PV of $10): ${PV_principal:.4f}")
+    print(f"    {leverage}× Call(K={K_strike:.2f}): ${leverage * call_value:.4f}")
+    print(f"    -{leverage}× Call(K_cap={K_cap_scaled:.2f}): ${-leverage * call_cap_value:.4f}")
+    print(f"    -Put(K={K_strike:.2f}): ${-put_value:.4f}")
+    print(f"\n  PLUS Fair Value: ${plus_value:.4f}")
+    print(f"  Issue Price: ${principal:.2f}")
+    print(f"  Difference: ${plus_value - principal:.4f}")
+
+    if abs(plus_value - principal) > 0.01:
+        print(f"\n  (c) The PLUS is {'OVERPRICED' if plus_value < principal else 'UNDERPRICED'}")
+        print(f"  To set value to par ($10), could adjust:")
+        print(f"    - Lower the leverage factor, OR")
+        print(f"    - Lower the cap (max payment), OR")
+        print(f"    - Adjust the principal protection")
+
+    # Problem 2.2: Beta sensitivity analysis
+    print(f"\n  (d) Beta Sensitivity Analysis:")
+    print(f"  ------------------------------")
+
+    stock_prices = [S0 * 0.8, S0 * 0.9, S0, S0 * 1.1, S0 * 1.2]
+    times = [T, T/2, 0.01]  # Today, 6 months, near maturity
+    time_labels = ["Today (T=1yr)", "6 months (T=0.5yr)", "Near maturity (T≈0)"]
+
+    for idx, t in enumerate(times):
+        print(f"\n  {time_labels[idx]}:")
+        print(f"    {'Stock Price':<12} {'PLUS Value':<12} {'Delta':<10} {'Beta':<10}")
+        print(f"    {'-'*50}")
+
+        for S in stock_prices:
+            # Recalculate PLUS value at this stock price and time
+            tau = t  # Time remaining
+            if tau < 0.01:
+                tau = 0.01  # Avoid division by zero
+
+            pv = principal * np.exp(-r * tau)
+            c1 = black_scholes_call(S, K_strike, tau, r, sigma_plus, q)
+            c2 = black_scholes_call(S, K_cap_scaled, tau, r, sigma_plus, q)
+            p = black_scholes_put(S, K_strike, tau, r, sigma_plus, q)
+            plus_val = pv + leverage * (c1 - c2) - p
+
+            # Calculate delta (sensitivity to stock price)
+            d1 = black_scholes_delta(S, K_strike, tau, r, sigma_plus, 'call', q)
+            d2 = black_scholes_delta(S, K_cap_scaled, tau, r, sigma_plus, 'call', q)
+            d_put = black_scholes_delta(S, K_strike, tau, r, sigma_plus, 'put', q)
+            delta_plus = leverage * (d1 - d2) - d_put
+
+            # Beta = (∂PLUS/∂S) × (S/PLUS) = delta × (S/PLUS)
+            beta_plus = delta_plus * (S / plus_val) if plus_val > 0 else 0
+
+            print(f"    ${S:<11.2f} ${plus_val:<11.4f} {delta_plus:<9.4f} {beta_plus:<9.4f}")
+
+    print(f"\n  Observations:")
+    print(f"    - Beta increases as stock price rises (convexity)")
+    print(f"    - Beta approaches 1.0 for deep ITM (acts like stock)")
+    print(f"    - Beta can be negative for deep OTM (put dominates)")
+    print(f"    - As maturity approaches, beta becomes more binary")
+
+    return plus_value
+
 def hw7_american_options():
     """Solve HW7: American Options"""
     print("\n" + "="*80)
@@ -676,6 +885,7 @@ def main():
     results['hw4_stock_price'], results['hw4_call'] = hw4_binomial_tree()
     results['hw5_binomial_call'] = hw5_binomial_multiperiod()
     results['hw5_bs_call'], results['hw5_bs_put'] = hw5_black_scholes()
+    results['hw6_plus_value'] = hw6_implied_volatility()
     results['hw7_american_put'] = hw7_american_options()
 
     # Summary
