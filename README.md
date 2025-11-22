@@ -229,6 +229,38 @@ Open `SOLUTIONS.md` in any markdown viewer
 6. **Structured Products** - Decomposed and valued complex securities
 7. **Mathematical Rigor** - Provided complete derivations and proofs
 
+## 📝 Exam Solutions
+
+### Final Exam 2024 **[NEW]**
+Complete solutions with detailed explanations and verified calculations:
+- ✅ **Question 1** (20 pts): Short answer - Monte Carlo vs Binomial, ATM options, futures as predictors
+- ✅ **Question 2** (30 pts): Currency swaps - Forward rates, fair swap rate, off-market swaps, swap valuation
+- ✅ **Question 3** (30 pts): Credit risk (KMV/Merton model) - Equity pricing, volatility, default probability, senior/junior debt
+- ✅ **Question 4** (45 pts): Binomial trees with dividends - European/American options, early exercise, dynamic hedging
+- ✅ **Question 5** (55 pts): Structured products - Payoff decomposition, put-call parity, Black-Scholes pricing, delta/beta hedging
+
+**View exam solutions:**
+- `FINAL_EXAM_2024_SOLUTIONS.md` - Complete written solutions with step-by-step derivations
+- `final_exam_2024_verification.py` - Python code verifying all numerical calculations
+
+**Run verification:**
+```bash
+python3 final_exam_2024_verification.py
+```
+
+### Key Exam Results
+| Question | Result |
+|----------|--------|
+| Q2: Fair swap rate | 3.98% p.a. |
+| Q2: Swap value after yield shift | +$1.62M |
+| Q3: Price per share (Merton model) | $402.66 |
+| Q3: Default probability | 41.36% |
+| Q3: Default risk premium | 217 bp |
+| Q4: European call (2-year) | $10.98 |
+| Q4: American call with dividend | $12.89 |
+| Q5: Structured product (market) | $1,096.28 |
+| Q5: Structured product (model σ=30%) | $1,116.68 |
+
 ## ✅ Completion Status
 
 All tasks **COMPLETED** and **VERIFIED** successfully:
@@ -236,6 +268,7 @@ All tasks **COMPLETED** and **VERIFIED** successfully:
 - [x] Create comprehensive Python solution script (ALL 7 HOMEWORKS)
 - [x] **[FIXED]** Corrected HW1 arbitrage calculation (profit sign error)
 - [x] **[ADDED]** Complete HW6: Implied Volatility & Structured Products
+- [x] **[NEW]** Complete Final Exam 2024 solutions with verification code
 - [x] Test all calculations and create visualizations
 - [x] Verify all mathematical formulas and results
 - [x] Create Jupyter notebook from solution
