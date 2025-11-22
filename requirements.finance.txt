@@ -1,0 +1,80 @@
+###############################
+# Core Data Science / Numerics
+###############################
+numpy
+pandas
+scipy
+
+# Time value / cash flows / IRR / NPV
+numpy-financial
+
+# High-precision numerics (useful for root-finding / pricing)
+mpmath
+
+###############################
+# Financial Mathematics / Quant
+###############################
+QuantLib                 # import QuantLib as ql
+numba
+sympy
+arch                     # volatility / GARCH models
+statsmodels              # econometrics
+ffn                      # performance metrics
+
+###############################
+# Data Sources
+###############################
+yfinance
+pandas-datareader
+
+###############################
+# Data Visualization
+###############################
+matplotlib
+plotly
+seaborn
+mplfinance
+
+###############################
+# Excel / File Handling / Arrow
+###############################
+openpyxl
+xlrd
+xlwt
+xlsxwriter
+pyarrow
+
+###############################
+# Notebook Environment
+###############################
+jupyter
+notebook
+ipykernel
+ipywidgets
+marimo
+jupyter_contrib_nbextensions
+
+###############################
+# Performance / Vectorization
+###############################
+numexpr
+bottleneck
+
+###############################
+# Data Manipulation / Large Data
+###############################
+polars
+xarray
+dask[dataframe]
+duckdb
+pandas-market-calendars
+
+###############################
+# Databases / Utilities
+###############################
+sqlalchemy
+psycopg2-binary
+tqdm
+requests
+python-dotenv
+tabulate
